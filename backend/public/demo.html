@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAPY - Test Drive ⚡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Reusing app styles */
+        :root {
+            --primary: #00a884;
+            --secondary: #008f6f;
+            --bg-page: #e9edef;
+            --bg-card: #ffffff;
+            --text-main: #111b21;
+            --text-secondary: #667781;
+            --border: #e9edef;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+            margin: 0;
+            padding-top: 70px;
+        }
+
+        header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 70px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .container-fluid {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { font-weight: bold; font-size: 20px; color: var(--primary); }
+        .demo-badge { background: #ffc107; color: #000; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-left: 10px; }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: calc(100vh - 70px);
+            max-width: 1600px;
+            margin: 0 auto;
+            background: #fff;
+        }
+
+        .sidebar {
+            background: #ffffff;
+            padding: 20px;
+            border-right: 1px solid var(--border);
+        }
+
+        .main-content {
+            padding: 40px;
+            background: #f0f2f5;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: var(--text-main);
+            text-decoration: none;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            font-size: 15px;
+        }
+        
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #f0f2f5;
+            color: var(--primary);
+            font-weight: 600;
+            border-left: 4px solid var(--primary);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: none;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 5px rgba(11,20,26,0.05);
+            margin-bottom: 24px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .btn-success { background: var(--primary); color: white; }
+        .btn-outline { border: 1px solid #ddd; background: transparent; }
+
+        /* Gate */
+        #gate {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-page);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .step-container { display: none; }
+        .step-container.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .dropzone {
+            border: 2px dashed #ced4da;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .dropzone:hover { border-color: var(--primary); background: #f8f9fa; }
+
+        /* Modal for Finish */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 3000;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: white; padding: 40px; border-radius: 12px;
+            text-align: center; max-width: 500px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- GATE (Connection Simulation) -->
+    <div id="gate">
+        <div class="card" style="width: 400px; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 20px;">📱</div>
+            <h2 style="margin-bottom: 10px;">Conexão WhatsApp</h2>
+            <p style="color: #6c757d; margin-bottom: 20px;">Para testar, precisamos simular a conexão com seu WhatsApp.</p>
+            
+            <div id="qrArea">
+                <div style="width: 200px; height: 200px; background: #eee; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center;">
+                    <span style="font-size: 40px;">🔳 QR CODE</span>
+                </div>
+                <button onclick="simulateConnection()" class="btn btn-success" style="width: 100%;">SIMULAR LEITURA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FINISH MODAL -->
+    <div id="finishModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color: var(--primary); margin-bottom: 20px;">Teste Concluído! 🎉</h2>
+            <p style="font-size: 16px; color: #555; margin-bottom: 30px;">
+                Você experimentou como é fácil criar campanhas com o ZAPY.
+                Para usar de verdade e salvar seus dados:
+            </p>
+            <div style="background: #f0f2f5; padding: 15px; border-radius: 8px; margin-bottom: 30px; text-align: left;">
+                <strong>Próximos Passos:</strong>
+                <ol style="margin-top: 10px; padding-left: 20px;">
+                    <li>Acesse sua conta (Login)</li>
+                    <li>Vá em <strong>Admin de Clientes</strong></li>
+                    <li>Clique em <strong>+ Novos Usuários</strong> para criar acessos reais</li>
+                </ol>
+            </div>
+            <button onclick="goToLogin()" class="btn btn-success" style="width: 100%;">IR PARA LOGIN</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="container-fluid">
+            <div class="logo">ZAPY ⚡ <span class="demo-badge">MODO DEMONSTRAÇÃO</span></div>
+            <div>
+                <button onclick="quitDemo()" class="btn btn-outline" style="font-size: 12px;">SAIR DO TESTE</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <a href="#" class="active">📢 Nova Campanha</a>
+            <a href="#" style="opacity: 0.5; cursor: not-allowed;">📜 Histórico (Indisponível no Demo)</a>
+            <a href="#" style="opacity: 0.5; cursor: not-allowed;">📱 Conexão (Simulada)</a>
+        </aside>
+
+        <main class="main-content">
+            <!-- STEP 1: UPLOAD -->
+            <div id="step1" class="step-container active">
+                <div class="card">
+                    <h3>1. Importar Contatos (Simulação)</h3>
+                    <p style="color: #666;">No modo teste, usaremos uma lista fictícia de contatos.</p>
+                    
+                    <div class="dropzone" onclick="loadMockContacts()">
+                        <p style="font-size: 24px;">📂</p>
+                        <p>Clique para carregar lista de exemplo (5 contatos)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: MESSAGE -->
+            <div id="step2" class="step-container">
+                <div class="card">
+                    <h3>2. Configurar Mensagem</h3>
+                    <div class="form-group">
+                        <label>Nome da Campanha</label>
+                        <input type="text" class="form-control" value="Campanha Teste - Promoção">
+                    </div>
+                    <div class="form-group">
+                        <label>Mensagem</label>
+                        <textarea class="form-control" rows="5" id="messageInput">Olá {nome}, aproveite nossa oferta especial de hoje! 🚀</textarea>
+                        <small style="color: #666;">Dica: Use {nome} para personalizar.</small>
+                    </div>
+                    <button onclick="goToStep(3)" class="btn btn-success" style="width: 100%;">Avançar ➤</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: PREVIEW -->
+            <div id="step3" class="step-container">
+                <div class="card">
+                    <h3>3. Revisão</h3>
+                    <div style="background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong>Total de Contatos:</strong> 5 (Fictícios)<br>
+                        <strong>Mensagem de Exemplo:</strong><br>
+                        <span id="previewText" style="font-style: italic; color: #555;"></span>
+                    </div>
+                    <button onclick="startSimulation()" class="btn btn-success" style="width: 100%;">INICIAR DISPARO 🚀</button>
+                </div>
+            </div>
+
+            <!-- STEP 4: SENDING -->
+            <div id="step4" class="step-container">
+                <div class="card" style="text-align: center;">
+                    <h3 style="color: var(--primary);">Disparando (Simulação)...</h3>
+                    <div style="font-size: 40px; margin: 20px 0;">⏳</div>
+                    <progress id="progressBar" value="0" max="100" style="width: 100%; height: 20px;"></progress>
+                    <p id="progressText">0/5</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/notifier-global.js"></script>
+    <script>
+        // DEMO LOGIC
+        
+        function simulateConnection() {
+            const btn = document.querySelector('#gate button');
+            btn.textContent = 'Conectando...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                document.getElementById('gate').style.display = 'none';
+            }, 1500);
+        }
+
+        function loadMockContacts() {
+            // Simulate file load
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+        }
+
+        function goToStep(step) {
+            document.querySelectorAll('.step-container').forEach(el => el.classList.remove('active'));
+            document.getElementById('step' + step).classList.add('active');
+
+            if (step === 3) {
+                const msg = document.getElementById('messageInput').value;
+                document.getElementById('previewText').textContent = msg.replace('{nome}', 'João Silva');
+            }
+        }
+
+        function startSimulation() {
+            goToStep(4);
+            let progress = 0;
+            const bar = document.getElementById('progressBar');
+            const txt = document.getElementById('progressText');
+            
+            const interval = setInterval(() => {
+                progress += 20; // 5 steps
+                bar.value = progress;
+                txt.textContent = (progress / 20) + '/5';
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('finishModal').style.display = 'flex';
+                    }, 1000);
+                }
+            }, 800); // Fast simulation
+        }
+
+        function goToLogin() {
+            try {
+                if (window.opener && !window.opener.closed) {
+                    window.opener.location.href = '/login.html';
+                    window.close();
+                    return;
+                }
+            } catch (e) {
+                console.log('Opener access failed');
+            }
+            window.location.href = '/login.html';
+        }
+
+        async function quitDemo() {
+            if(await notifier.confirm('Sair do modo demonstração?')) {
+                window.location.href = '/login.html';
+            }
+        }
+    </script>
+</body>
+</html>

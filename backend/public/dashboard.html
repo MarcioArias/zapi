@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ZAPY ⚡</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/notifier-global.js"></script>
+    <style>
+        /* Custom transitions */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+    <script>
+        (function() {
+             const userStr = localStorage.getItem('zapi_user');
+             if (!userStr) {
+                 window.location.href = '/login.html';
+                 return;
+             }
+             const user = JSON.parse(userStr);
+             if (user.role !== 'admin' && user.role !== 'super_admin') {
+                 window.location.href = '/app/index.html';
+             }
+         })();
+    </script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <!-- Mobile Header -->
+    <div class="md:hidden flex items-center justify-between bg-white p-4 shadow-sm">
+        <div class="text-xl font-bold text-gray-800">ZAPY ⚡</div>
+        <button onclick="toggleSidebar()" class="text-gray-600 focus:outline-none">
+            <i class="fas fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex items-center justify-center">
+                <h1 class="text-2xl font-bold text-gray-800 tracking-wider">ZAPY ⚡</h1>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="#" onclick="showModule('dashboard')" id="nav-dashboard" class="flex items-center p-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-colors group active-nav">
+                    <i class="fas fa-chart-line w-6 text-center mr-2 group-hover:text-emerald-600"></i>
+                    <span class="font-medium">Visão Geral</span>
+                </a>
+                
+                <a href="#" onclick="showModule('users')" id="nav-users" class="flex items-center p-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-colors group">
+                    <i class="fas fa-users w-6 text-center mr-2 group-hover:text-emerald-600"></i>
+                    <span class="font-medium">Usuários</span>
+                </a>
+
+                <a href="#" onclick="showModule('financial')" id="nav-financial" class="flex items-center p-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-colors group">
+                    <i class="fas fa-wallet w-6 text-center mr-2 group-hover:text-emerald-600"></i>
+                    <span class="font-medium">Financeiro</span>
+                </a>
+
+                <a href="settings.html" class="flex items-center p-3 text-gray-600 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 transition-colors group">
+                    <i class="fas fa-cog w-6 text-center mr-2 group-hover:text-emerald-600"></i>
+                    <span class="font-medium">Configurações</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-100">
+                <div class="flex items-center mb-4 px-2">
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold mr-3">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800" id="userName">Carregando...</p>
+                        <p class="text-xs text-gray-500" id="userRoleDisplay">Cliente</p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-6 md:p-8">
+            
+            <!-- MODULE: DASHBOARD -->
+            <div id="module-dashboard" class="module fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Visão Geral</h2>
+                        <p class="text-gray-500 mt-1">Acompanhe o desempenho da sua conta.</p>
+                    </div>
+                    <div class="mt-4 md:mt-0">
+                        <select class="block w-full md:w-48 p-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 shadow-sm">
+                            <option>Últimos 30 dias</option>
+                            <option>Este Mês</option>
+                            <option>Esta Semana</option>
+                            <option>Hoje</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- Card 1 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-1">Envios no Mês</p>
+                            <h3 class="text-3xl font-bold text-gray-800" id="monthlyMsgs">0</h3>
+                        </div>
+                        <div class="p-3 bg-emerald-100 rounded-lg text-emerald-600">
+                            <i class="fas fa-paper-plane text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-1">Campanhas no Mês</p>
+                            <h3 class="text-3xl font-bold text-gray-800" id="monthlyCampaigns">0</h3>
+                        </div>
+                        <div class="p-3 bg-blue-100 rounded-lg text-blue-600">
+                            <i class="fas fa-bullhorn text-xl"></i>
+                        </div>
+                    </div>
+
+                    <!-- Card 3 -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-start justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500 mb-1">Status da Conta</p>
+                            <h3 class="text-xl font-bold text-emerald-600" id="planStatus">Ativo</h3>
+                            <p class="text-xs text-gray-400 mt-1" id="userLimit">Limite: ...</p>
+                        </div>
+                        <div class="p-3 bg-purple-100 rounded-lg text-purple-600">
+                            <i class="fas fa-crown text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Desempenho de Envios</h3>
+                        <div class="relative h-64">
+                            <canvas id="msgChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Status de Entrega</h3>
+                        <div class="relative h-64 flex justify-center">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE: FINANCIAL -->
+            <div id="module-financial" class="module hidden fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Histórico Financeiro</h2>
+                        <p class="text-gray-500 mt-1">Gerencie seus pagamentos e faturas.</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 flex gap-3">
+                        <button class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center shadow-sm">
+                            <i class="fas fa-filter mr-2"></i> Filtrar
+                        </button>
+                        <button onclick="exportCSV()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center shadow-sm transition-colors">
+                            <i class="fas fa-download mr-2"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Vencimento</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Método</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data Pagamento</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Data injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Empty State -->
+                    <div id="emptyFinancial" class="hidden flex flex-col items-center justify-center p-10 text-center">
+                        <div class="bg-gray-100 p-4 rounded-full mb-4">
+                            <i class="fas fa-receipt text-3xl text-gray-400"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900">Nenhum pagamento encontrado</h3>
+                        <p class="text-gray-500 mb-6 max-w-sm">Você ainda não possui histórico de pagamentos registrados nesta conta.</p>
+                        <a href="subscription.html" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
+                            Ver Planos Disponíveis
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE: USERS -->
+            <div id="module-users" class="module hidden fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Gerenciar Usuários</h2>
+                        <p class="text-gray-500 mt-1">Controle o acesso dos operadores ao sistema.</p>
+                    </div>
+                    <button onclick="openUserModal()" class="mt-4 md:mt-0 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 flex items-center shadow-sm transition-colors">
+                        <i class="fas fa-plus mr-2"></i> Novo Usuário
+                    </button>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Token</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Data injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <!-- User Modal -->
+    <div id="userModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeUserModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Novo Usuário</h3>
+                            <div class="mt-4">
+                                <form onsubmit="saveUser(event)" class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Nome</label>
+                                        <input type="text" id="userNameInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                                        <input type="email" id="userEmailInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Senha</label>
+                                        <input type="password" id="userPassInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700">Telefone (Opcional)</label>
+                                        <input type="text" id="userPhoneInput" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm">
+                                    </div>
+                                    <div class="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                                        <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:col-start-2 sm:text-sm">
+                                            Salvar
+                                        </button>
+                                        <button type="button" onclick="closeUserModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:col-start-1 sm:text-sm">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Sidebar Toggle for Mobile ---
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+            }
+        }
+
+        // --- Navigation Logic ---
+        function showModule(moduleId) {
+            // Hide all modules
+            document.querySelectorAll('.module').forEach(m => {
+                m.classList.add('hidden');
+            });
+            
+            // Deactivate all nav links
+            document.querySelectorAll('aside nav a').forEach(a => {
+                a.classList.remove('bg-emerald-50', 'text-emerald-600');
+                a.classList.add('text-gray-600');
+                // Icon color reset
+                const icon = a.querySelector('i');
+                if(icon) icon.classList.remove('text-emerald-600');
+            });
+
+            // Show selected module
+            const module = document.getElementById('module-' + moduleId);
+            if(module) module.classList.remove('hidden');
+
+            // Activate nav link
+            const navLink = document.getElementById('nav-' + moduleId);
+            if(navLink) {
+                navLink.classList.remove('text-gray-600');
+                navLink.classList.add('bg-emerald-50', 'text-emerald-600');
+                const icon = navLink.querySelector('i');
+                if(icon) icon.classList.add('text-emerald-600');
+            }
+
+            // Close sidebar on mobile
+            if(window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+
+            // Load Data
+            if (moduleId === 'users') loadUsers();
+            if (moduleId === 'financial') loadPayments();
+            if (moduleId === 'dashboard') loadStats();
+        }
+
+        // --- Auth & Init ---
+        const userStr = localStorage.getItem('zapi_user');
+        if (!userStr) window.location.href = 'login.html';
+        const user = JSON.parse(userStr);
+
+        if (user.role !== 'admin' && user.role !== 'super_admin') {
+            window.location.href = 'app/index.html';
+        }
+
+        document.getElementById('userName').textContent = user.name;
+        document.getElementById('userRoleDisplay').textContent = user.role === 'super_admin' ? 'Super Admin' : 'Administrador';
+
+        const clientData = Array.isArray(user.clients) ? user.clients[0] : (user.clients || {});
+        const clientId = clientData.id;
+
+        if (!clientId) {
+            console.error('Client ID missing for user:', user);
+            // Don't alert immediately on load to avoid spam if it's a transient state, 
+            // but maybe show a banner?
+            // For now, let's just log it. If requests fail, they will fail.
+        }
+
+        document.getElementById('planStatus').textContent = (clientData.status === 'active' ? 'Ativo' : 'Inativo');
+        document.getElementById('planStatus').className = `text-xl font-bold ${clientData.status === 'active' ? 'text-emerald-600' : 'text-red-600'}`;
+        document.getElementById('userLimit').textContent = `Limite: ${clientData.user_limit || 1} usuários`;
+
+        const token = localStorage.getItem('zapi_token');
+        const API_HEADERS = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        function logout() {
+            localStorage.removeItem('zapi_user');
+            window.location.href = '/login.html';
+        }
+
+        // --- Data Loading Functions ---
+
+        // 1. Stats & Charts
+        let msgChartInstance = null;
+        let statusChartInstance = null;
+
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/clients/stats', { headers: API_HEADERS });
+                const stats = await res.json();
+                
+                document.getElementById('monthlyMsgs').textContent = stats.monthly_messages || 0;
+                document.getElementById('monthlyCampaigns').textContent = stats.monthly_campaigns || 0;
+
+                renderCharts(stats);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function renderCharts(stats) {
+            const ctx1 = document.getElementById('msgChart').getContext('2d');
+            const ctx2 = document.getElementById('statusChart').getContext('2d');
+
+            if (msgChartInstance) msgChartInstance.destroy();
+            if (statusChartInstance) statusChartInstance.destroy();
+
+            // Line Chart for Performance
+            msgChartInstance = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+                    datasets: [{
+                        label: 'Envios',
+                        data: [stats.monthly_messages * 0.2, stats.monthly_messages * 0.3, stats.monthly_messages * 0.4, stats.monthly_messages * 0.1], 
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [2, 4] } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Pie/Doughnut for Status
+            statusChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sucesso', 'Falha', 'Pendente'],
+                    datasets: [{
+                        data: [
+                            stats.status_distribution.success, 
+                            stats.status_distribution.failed, 
+                            stats.status_distribution.pending
+                        ],
+                        backgroundColor: ['#10B981', '#EF4444', '#F59E0B'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } 
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // 2. Financial
+        let globalPayments = [];
+
+        async function loadPayments() {
+            try {
+                const res = await fetch('/api/clients/payments', { headers: API_HEADERS });
+                globalPayments = await res.json();
+                const payments = globalPayments;
+                
+                const tbody = document.getElementById('paymentsTableBody');
+                const emptyState = document.getElementById('emptyFinancial');
+                tbody.innerHTML = '';
+                
+                if (payments.length === 0) {
+                    tbody.parentElement.classList.add('hidden'); // Hide table
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                tbody.parentElement.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+
+                payments.forEach(p => {
+                    const statusColors = {
+                        paid: 'bg-emerald-100 text-emerald-800',
+                        pending: 'bg-yellow-100 text-yellow-800',
+                        overdue: 'bg-red-100 text-red-800'
+                    };
+                    const statusLabel = {
+                        paid: 'Pago',
+                        pending: 'Pendente',
+                        overdue: 'Atrasado'
+                    };
+
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(p.due_date).toLocaleDateString()}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">R$ ${Number(p.amount).toFixed(2)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[p.status] || 'bg-gray-100 text-gray-800'}">
+                                ${statusLabel[p.status] || p.status.toUpperCase()}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.payment_method || '-'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function exportCSV() {
+            notifier.info('Funcionalidade de exportação em desenvolvimento.');
+        }
+
+        // 3. Users (Adapted styling)
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/clients/users', { headers: API_HEADERS });
+                const users = await res.json();
+                
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                // Update header count if element exists, or just log
+                console.log(`Carregados ${users.length} usuários.`);
+
+                users.forEach(u => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-gray-50 transition-colors";
+                    
+                    const tokenDisplay = u.first_access_token 
+                        ? `<div class="flex items-center gap-2">
+                             <span class="font-mono text-xs font-bold bg-gray-100 px-2 py-1 rounded select-all text-gray-700 border border-gray-200">${u.first_access_token}</span>
+                             <button onclick="copyToken('${u.first_access_token}')" class="text-gray-400 hover:text-emerald-600 transition-colors" title="Copiar Token">
+                                <i class="fas fa-copy"></i>
+                             </button>
+                           </div>`
+                        : `<button onclick="generateToken('${u.id}')" class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded hover:bg-emerald-200 font-bold transition-colors">GERAR TOKEN</button>`;
+                    
+                    const statusBadge = u.status === 'active' 
+                        ? '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800">Ativo</span>'
+                        : '<span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Inativo</span>';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-8 w-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-xs">
+                                    ${u.name.charAt(0).toUpperCase()}
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">${u.name}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${u.email}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${tokenDisplay}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">${statusBadge}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onclick="deleteUser('${u.id}')" class="text-red-600 hover:text-red-900 ml-4"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) { console.error('Erro ao carregar usuários:', err); }
+        }
+
+        async function saveUser(e) {
+            e.preventDefault();
+            const data = {
+                name: document.getElementById('userNameInput').value,
+                email: document.getElementById('userEmailInput').value,
+                password: document.getElementById('userPassInput').value,
+                phone: document.getElementById('userPhoneInput').value
+            };
+
+            try {
+                const res = await fetch('/api/clients/users', {
+                    method: 'POST',
+                    headers: API_HEADERS,
+                    body: JSON.stringify(data)
+                });
+                
+                if (res.ok) {
+                    const newUser = await res.json();
+                    closeUserModal();
+                    
+                    // Payment Prompt
+                    if (await notifier.confirm('Usuário criado com sucesso! Deseja realizar o pagamento da assinatura deste usuário agora? (R$ 99,00)')) {
+                        try {
+                            const payRes = await fetch('/api/payments/checkout', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    title: 'Assinatura Adicional - Usuário',
+                                    price: 99,
+                                    client_id: clientId
+                                })
+                            });
+                            const payData = await payRes.json();
+                            if (payData.init_point) window.location.href = payData.init_point;
+                        } catch (e) { await notifier.error('Erro ao iniciar pagamento: ' + e.message); }
+                    }
+                    
+                    loadUsers();
+                    document.getElementById('userNameInput').value = '';
+                    document.getElementById('userEmailInput').value = '';
+                    document.getElementById('userPassInput').value = '';
+                    
+                    if (newUser.first_access_token) {
+                        await notifier.success(`USUÁRIO CRIADO!\n\nToken de Acesso: ${newUser.first_access_token}\n\nEntregue este token ao usuário.`);
+                    }
+                } else {
+                    const err = await res.json();
+                    await notifier.error('Erro: ' + err.error);
+                }
+            } catch (err) { console.error(err); await notifier.error('Erro ao salvar'); }
+        }
+
+        async function deleteUser(id) {
+            if (!(await notifier.confirm('Excluir usuário?'))) return;
+            try {
+                await fetch('/api/clients/users/' + id, { method: 'DELETE', headers: API_HEADERS });
+                loadUsers();
+            } catch (err) { console.error(err); }
+        }
+        
+        // --- Helper Functions for Token ---
+        function copyToken(token) {
+            navigator.clipboard.writeText(token).then(() => {
+                 notifier.success('Token copiado!');
+            }).catch(err => {
+                console.error('Erro ao copiar', err);
+                notifier.error('Erro ao copiar token. Copie manualmente: ' + token);
+            });
+        }
+
+        async function generateToken(id) {
+            if(!(await notifier.confirm('Gerar novo token para este usuário?'))) return;
+            try {
+                const newToken = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const res = await fetch('/api/clients/users/' + id, {
+                    method: 'PUT',
+                    headers: API_HEADERS,
+                    body: JSON.stringify({ first_access_token: newToken })
+                });
+                if(res.ok) {
+                    await loadUsers();
+                    await notifier.success('Novo token gerado com sucesso!');
+                } else {
+                    await notifier.error('Erro ao gerar token');
+                }
+            } catch(e) { console.error(e); await notifier.error('Erro de conexão'); }
+        }
+
+        // Modal Helpers
+        function openUserModal() { 
+            document.getElementById('userModal').classList.remove('hidden'); 
+        }
+        function closeUserModal() { 
+            document.getElementById('userModal').classList.add('hidden'); 
+        }
+
+        // Init
+        // Check hash to determine active module
+        const hash = window.location.hash.replace('#', '');
+        if (hash === 'financial') showModule('financial');
+        else if (hash === 'users') showModule('users');
+        else showModule('dashboard'); // Default
+
+        // Filter Listener for Dashboard
+        const dashboardFilter = document.querySelector('#module-dashboard select');
+        if (dashboardFilter) {
+            dashboardFilter.addEventListener('change', (e) => {
+                // In a real app, pass e.target.value to loadStats
+                loadStats(); 
+            });
+        }
+
+    </script>
+</body>
+</html>

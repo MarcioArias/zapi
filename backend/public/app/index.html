@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAPY - Painel do Operador</title>
+    <link href="css/output.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/libphonenumber-js@1.10.24/bundle/libphonenumber-max.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        (function() {
+             const userStr = localStorage.getItem('zapi_user');
+             if (!userStr) {
+                 window.location.href = '/login.html';
+                 return;
+             }
+             const user = JSON.parse(userStr);
+             // Strict RBAC: Users Only
+             if (user.role === 'admin' || user.role === 'super_admin') {
+                 window.location.href = '/dashboard.html';
+             }
+         })();
+    </script>
+    <!-- Font Awesome (Use CDN for now, but consider local if icons persist small) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* Wizard Steps Progress */
+        .step-indicator { position: relative; z-index: 1; }
+        .step-indicator.active .circle { background-color: #10B981; color: white; border-color: #10B981; }
+        .step-indicator.completed .circle { background-color: #10B981; color: white; border-color: #10B981; }
+        .step-line { position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: #E5E7EB; z-index: 0; transform: translateY(-50%); }
+        .step-line.completed { background: #10B981; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <!-- GATE / LOCK SCREEN -->
+    <div id="gate" class="fixed inset-0 z-50 bg-gray-100 flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+            <div class="text-6xl mb-4">🔒</div>
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Conexão Necessária</h2>
+            <p class="text-gray-500 mb-6">Conecte seu WhatsApp para acessar o painel.</p>
+            
+            <div id="gateQrArea" class="hidden">
+                <div class="bg-white p-2 border border-gray-200 inline-block rounded-lg mb-4 relative min-w-[256px] min-h-[256px] flex items-center justify-center">
+                    <div id="gateQrLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-gray-50">
+                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-2"></div>
+                         <span id="gateQrMessage" class="text-xs text-gray-500 font-medium">Gerando QR Code...</span>
+                    </div>
+                    <img id="gateQrImage" src="" class="w-64 h-64 object-contain hidden relative z-10">
+                </div>
+                <p class="text-sm text-gray-500 mb-4">Abra o WhatsApp > Configurações > Aparelhos Conectados</p>
+                <button onclick="simulateScan()" class="w-full py-2 px-4 border border-dashed border-gray-400 text-gray-600 rounded hover:bg-gray-50 text-sm">
+                    (DEV) Simular Leitura QR
+                </button>
+            </div>
+            
+            <div id="gateLoading" class="hidden">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+                <p class="text-emerald-600 font-medium">Verificando conexão...</p>
+            </div>
+
+            <button id="btnConnectGate" onclick="initGateConnection()" class="hidden w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 transition-colors">
+                Conectar Agora
+            </button>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="fixed inset-0 z-40 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" aria-hidden="true" onclick="closeDetailsModal()"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Detalhes da Campanha</h3>
+                        <button onclick="closeDetailsModal()" class="text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    <div id="modalBody" class="mt-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Column Selection Modal -->
+    <div id="columnSelectionModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Configuração de Importação</h3>
+            <p class="text-sm text-gray-600 mb-4">Identificamos as colunas do arquivo. Confirme qual coluna contém os <strong>números de telefone</strong>.</p>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Coluna de Telefone</label>
+                <select id="phoneColumnSelect" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2 border"></select>
+            </div>
+
+            <div class="mb-4 grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Filtro
+                        <i class="fas fa-question-circle text-gray-400 text-xs ml-1 cursor-help" title="Serve para filtrar contatos. Se você selecionar uma coluna aqui, o sistema só enviará mensagens para as linhas que tiverem o valor 'SIM' (ou o que você definir ao lado)."></i>
+                    </label>
+                    <select id="consentColumnSelect" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2 border">
+                        <option value="">-- Nenhuma (Enviar para todos) --</option>
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Opcional. Use para filtrar quem aceitou receber msgs.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Valor</label>
+                    <input type="text" id="consentValueInput" value="" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2 border" placeholder="Ex: SIM, OK, 1">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input type="checkbox" id="normalizePhone" checked class="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded">
+                    <span class="ml-2 text-sm text-gray-700">Normalizar números (Adicionar 55)</span>
+                </label>
+                <p class="text-xs text-gray-500 mt-1 ml-6">Ex: 11999999999 -> 5511999999999</p>
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="confirmPhoneColumn()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium">
+                    Confirmar e Avançar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Header -->
+    <div class="md:hidden flex items-center justify-between bg-white p-4 shadow-sm relative z-30">
+        <div class="text-xl font-bold text-gray-800 flex items-center">
+            <span class="text-emerald-600 mr-2">⚡</span> ZAPY
+        </div>
+        <button onclick="toggleSidebar()" class="text-gray-600 focus:outline-none">
+            <i class="fas fa-bars text-2xl"></i>
+        </button>
+    </div>
+
+    <div class="flex h-screen overflow-hidden" id="appContent">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-30 w-64 bg-white shadow-lg transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex items-center">
+                <span class="text-2xl mr-2">⚡</span>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800 tracking-wide">ZAPY</h1>
+                    <p class="text-xs text-gray-500">Painel do Operador</p>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-3 overflow-y-auto">
+                <a href="#" onclick="showModule('campaigns')" id="nav-campaigns" class="flex items-center p-3 text-emerald-700 bg-emerald-50 border-r-4 border-emerald-500 rounded-lg shadow-sm transition-all group active-nav font-bold">
+                    <i class="fas fa-paper-plane w-6 text-center mr-3 text-lg"></i>
+                    <span>Nova Campanha</span>
+                </a>
+                
+                <a href="#" onclick="showModule('history')" id="nav-history" class="flex items-center p-3 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-emerald-600 transition-all group font-medium hover:shadow-sm">
+                    <i class="fas fa-history w-6 text-center mr-3 text-lg"></i>
+                    <span>Histórico</span>
+                </a>
+
+                <a href="#" onclick="showModule('instances')" id="nav-instances" class="flex items-center p-3 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-emerald-600 transition-all group font-medium hover:shadow-sm">
+                    <i class="fas fa-wifi w-6 text-center mr-3 text-lg"></i>
+                    <span>Minha Conexão</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-gray-100 bg-gray-50">
+                <div class="flex items-center mb-3">
+                    <div class="w-10 h-10 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700 font-bold mr-3 text-lg">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-bold text-gray-800 truncate" id="userName">Carregando...</p>
+                        <p class="text-xs text-green-600 flex items-center">
+                            <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span> Online
+                        </p>
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full flex items-center justify-center p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-100">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-8">
+            
+            <!-- MODULE: CAMPAIGNS (Wizard) -->
+            <div id="campaigns" class="module fade-in">
+                
+                <!-- Wizard Progress Bar -->
+                <div class="max-w-4xl mx-auto mb-8">
+                    <div class="flex items-center justify-between relative">
+                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
+                        <div class="absolute left-0 top-1/2 transform -translate-y-1/2 h-1 bg-emerald-500 -z-10 transition-all duration-500" id="progressBar" style="width: 0%"></div>
+                        
+                        <!-- Step 1 Indicator -->
+                        <div class="flex flex-col items-center bg-gray-50 px-2 relative z-10" id="ind-step1">
+                            <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold border-4 border-gray-50 transition-colors">1</div>
+                            <span class="text-xs font-medium mt-1 text-emerald-700">Importar</span>
+                        </div>
+                        
+                        <!-- Step 2 Indicator -->
+                        <div class="flex flex-col items-center bg-gray-50 px-2 relative z-10" id="ind-step2">
+                            <div class="w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold border-4 border-gray-50 transition-colors">2</div>
+                            <span class="text-xs font-medium mt-1 text-gray-500">Mensagem</span>
+                        </div>
+
+                        <!-- Step 3 Indicator -->
+                        <div class="flex flex-col items-center bg-gray-50 px-2 relative z-10" id="ind-step3">
+                            <div class="w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold border-4 border-gray-50 transition-colors">3</div>
+                            <span class="text-xs font-medium mt-1 text-gray-500">Revisão</span>
+                        </div>
+
+                        <!-- Step 4 Indicator -->
+                        <div class="flex flex-col items-center bg-gray-50 px-2 relative z-10" id="ind-step4">
+                            <div class="w-10 h-10 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold border-4 border-gray-50 transition-colors">4</div>
+                            <span class="text-xs font-medium mt-1 text-gray-500">Envio</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Upload -->
+                <div id="step1" class="step-container max-w-4xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+                        <div class="text-center mb-8">
+                            <h2 class="text-2xl font-bold text-gray-800">Importar Contatos</h2>
+                            <p class="text-gray-500">Carregue sua lista de contatos para começar.</p>
+                        </div>
+
+                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center hover:bg-gray-50 hover:border-emerald-500 transition-all cursor-pointer group" onclick="document.getElementById('fileInput').click()">
+                            <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-1">Clique para fazer upload</h3>
+                            <p class="text-sm text-gray-500">Suporta arquivos .CSV ou .XLSX</p>
+                            <input type="file" id="fileInput" accept=".csv, .xlsx, .xls" class="hidden" onchange="handleFileUpload(this)">
+                        </div>
+
+                        <div id="fileInfo" class="mt-6 hidden bg-emerald-50 p-4 rounded-lg flex items-center justify-between border border-emerald-100">
+                            <div class="flex items-center">
+                                <i class="fas fa-file-excel text-emerald-600 text-xl mr-3"></i>
+                                <div>
+                                    <p class="font-medium text-gray-900" id="fileName">arquivo.xlsx</p>
+                                    <p class="text-xs text-emerald-600">Arquivo carregado com sucesso</p>
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('fileInput').click()" class="text-sm text-gray-500 hover:text-emerald-600 underline">Trocar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Message Builder -->
+                <div id="step2" class="step-container hidden max-w-4xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Configurar Mensagem</h2>
+                            <button onclick="goToStep(1)" class="text-gray-500 hover:text-gray-700 text-sm font-medium"><i class="fas fa-arrow-left mr-1"></i> Voltar</button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="md:col-span-2 space-y-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome da Campanha</label>
+                                    <input type="text" id="campName" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-2.5 border" placeholder="Ex: Promoção de Natal" list="campaignsList" autocomplete="off">
+                                    <datalist id="campaignsList"></datalist>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
+                                    <div class="relative">
+                                        <textarea id="campMessage" rows="8" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 p-3 border" placeholder="Olá {{Nome}}, confira nossas ofertas..."></textarea>
+                                        <div class="absolute bottom-2 right-2 text-xs text-gray-400">Suporta Markdown (*negrito*, _itálico_)</div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Anexo (Imagem/Vídeo/PDF)</label>
+                                    <div class="flex items-center space-x-2">
+                                        <label class="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 px-4 rounded-lg shadow-sm text-sm font-medium inline-flex items-center transition-colors">
+                                            <i class="fas fa-paperclip mr-2"></i> Escolher Arquivo
+                                            <input type="file" id="attachmentInput" class="hidden">
+                                        </label>
+                                        <span id="attachmentName" class="text-sm text-gray-500 truncate max-w-xs">Nenhum arquivo selecionado</span>
+                                    </div>
+                                    <p id="currentAttachmentDisplay" class="text-xs text-emerald-600 mt-1 hidden"><i class="fas fa-check-circle mr-1"></i> Mídia carregada do histórico</p>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-1 bg-gray-50 p-5 rounded-xl border border-gray-200">
+                                <h3 class="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Variáveis</h3>
+                                <p class="text-xs text-gray-500 mb-4">Clique para inserir dados dinâmicos do seu arquivo.</p>
+                                <div id="variableTags" class="flex flex-wrap gap-2">
+                                    <!-- Tags injected via JS -->
+                                </div>
+                                
+                                <div class="mt-8 pt-6 border-t border-gray-200">
+                                    <h3 class="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Dicas</h3>
+                                    <ul class="text-xs text-gray-500 space-y-2 list-disc list-inside">
+                                        <li>Use <strong>*texto*</strong> para negrito</li>
+                                        <li>Use <strong>_texto_</strong> para itálico</li>
+                                        <li>Variáveis inválidas ficarão em branco</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                            <button onclick="previewCampaign()" class="bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-bold flex items-center">
+                                Avançar para Revisão <i class="fas fa-arrow-right ml-2"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Preview -->
+                <div id="step3" class="step-container hidden max-w-4xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-bold text-gray-800">Revisão e Envio</h2>
+                            <button onclick="goToStep(2)" class="text-gray-500 hover:text-gray-700 text-sm font-medium"><i class="fas fa-arrow-left mr-1"></i> Voltar</button>
+                        </div>
+
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-info-circle text-blue-500"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-blue-700">
+                                        Você está prestes a enviar para <strong id="previewCount" class="font-bold">0</strong> contatos.
+                                        Verifique a prévia abaixo com atenção.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-100 p-6 rounded-xl border border-gray-200 mb-6 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Simulação (Primeiro Contato)</h4>
+                            <div id="previewMessage" class="bg-white p-4 rounded-lg shadow-sm text-gray-800 whitespace-pre-wrap font-sans text-sm border-l-4 border-emerald-500"></div>
+                            <div class="mt-2 text-xs text-gray-400 text-right">Agora</div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-8">
+                            <div class="text-sm text-gray-500">
+                                Colunas identificadas: <span id="previewColumns" class="font-mono text-gray-700"></span>
+                            </div>
+                            <button onclick="startCampaign()" class="bg-emerald-600 text-white px-8 py-3 rounded-lg hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl font-bold transform hover:-translate-y-0.5 flex items-center">
+                                <i class="fas fa-rocket mr-2"></i> INICIAR DISPARO
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Progress -->
+                <div id="step4" class="step-container hidden max-w-2xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-lg p-10 border border-gray-100 text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-full h-2 bg-gray-100">
+                            <div class="h-full bg-emerald-500 transition-all duration-300" id="progressBarTop" style="width: 0%"></div>
+                        </div>
+
+                        <div class="mb-6 inline-block p-4 bg-emerald-50 rounded-full text-emerald-600 animate-pulse">
+                            <i class="fas fa-paper-plane text-4xl"></i>
+                        </div>
+
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Enviando Campanha...</h2>
+                        <p class="text-gray-500 mb-8">Por favor, mantenha esta janela aberta.</p>
+
+                        <div class="relative pt-1 mb-2">
+                            <div class="flex mb-2 items-center justify-between">
+                                <div>
+                                    <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-emerald-600 bg-emerald-200">
+                                        Progresso
+                                    </span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-semibold inline-block text-emerald-600" id="progressPercent">
+                                        0%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-hidden h-4 mb-4 text-xs flex rounded bg-emerald-100 shadow-inner">
+                                <div id="sendProgress" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-emerald-500 transition-all duration-300"></div>
+                            </div>
+                            <p id="progressText" class="text-sm text-gray-600 font-medium font-mono">Iniciando...</p>
+                        </div>
+
+                        <div id="finishArea" class="hidden mt-8 pt-8 border-t border-gray-100 animate-fade-in">
+                            <div class="text-emerald-600 text-xl font-bold mb-4 flex items-center justify-center">
+                                <i class="fas fa-check-circle mr-2"></i> Concluído com Sucesso!
+                            </div>
+                            <button onclick="location.reload()" class="bg-gray-800 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors shadow-sm font-medium">
+                                Nova Campanha
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MODULE: HISTORY -->
+            <div id="history" class="module hidden fade-in">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800">Histórico de Campanhas</h2>
+                        <p class="text-gray-500 mt-1">Visualize relatórios detalhados dos seus envios.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-4 md:mt-0">
+                        <button onclick="exportHistory()" class="px-3 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center shadow-sm font-medium text-sm">
+                            <i class="fas fa-file-export mr-2 text-gray-500"></i> Relatório
+                        </button>
+                        
+                        <!-- Backup Actions -->
+                        <button onclick="exportFullDatabase()" id="btnBackupExport" class="px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg hover:bg-emerald-100 flex items-center shadow-sm font-medium text-sm transition-colors">
+                            <i class="fas fa-download mr-2"></i> Backup
+                        </button>
+                        <button onclick="document.getElementById('backupInput').click()" class="px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center shadow-sm font-medium text-sm transition-colors">
+                            <i class="fas fa-upload mr-2"></i> Restaurar
+                        </button>
+                        <input type="file" id="backupInput" hidden accept=".zapibak" onchange="handleBackupSelect(this)">
+                    </div>
+                </div>
+
+                <!-- Charts Area (New) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Taxa de Sucesso (Total)</h3>
+                        <div class="h-48 flex justify-center">
+                            <canvas id="historyPieChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Envios Recentes</h3>
+                        <div class="h-48">
+                            <canvas id="historyBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <div id="historyList">
+                            <!-- Table injected by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODULE: INSTANCES -->
+            <div id="instances" class="module hidden fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Minha Conexão</h2>
+                
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 max-w-2xl">
+                    <div id="instanceStatus" class="flex items-center space-x-4">
+                        <div class="animate-pulse flex space-x-4">
+                            <div class="rounded-full bg-gray-200 h-12 w-12"></div>
+                            <div class="flex-1 space-y-4 py-1">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100">
+                        <h3 class="font-bold text-gray-800 mb-2">Ferramentas de Diagnóstico</h3>
+                        <div class="flex gap-4">
+                            <button onclick="testConnection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium">
+                                <i class="fas fa-sync-alt mr-2"></i> Testar Conexão
+                            </button>
+                            <button onclick="logout()" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium border border-transparent hover:border-red-200">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Desconectar e Sair
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="js/db.js"></script>
+    <script src="/js/heartbeat.js"></script>
+    <script type="module" src="js/main.js"></script>
+    <script type="module">
+        import notifier from './js/modules/notifier.js';
+
+        // Mock Test Connection
+        window.testConnection = async function() {
+            await notifier.success('Conexão ativa! Latência: 45ms');
+        }
+    </script>
+</body>
+</html>

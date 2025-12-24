@@ -1,0 +1,18 @@
+@import "tailwindcss";
+@source "..";
+
+@layer utilities {
+  .fade-in { animation: fadeIn 0.3s ease-in-out; }
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Wizard Steps Progress */
+.step-indicator { position: relative; z-index: 1; }
+.step-indicator.active .circle { background-color: #10B981; color: white; border-color: #10B981; }
+.step-indicator.completed .circle { background-color: #10B981; color: white; border-color: #10B981; }
+.step-line { position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: #E5E7EB; z-index: 0; transform: translateY(-50%); }
+.step-line.completed { background: #10B981; }
+
+/* Ensure Font Awesome icons have a minimum size if needed, though Tailwind classes usually handle this */
+.fas, .far, .fab { font-size: 1.25em; } /* Default boost if they feel small */

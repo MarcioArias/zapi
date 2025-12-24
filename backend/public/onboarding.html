@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bem-vindo ao ZAPY ⚡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .onboarding-container {
+            max-width: 600px;
+            margin: 80px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .onboarding-title {
+            font-size: 28px;
+            color: #111b21;
+            margin-bottom: 20px;
+        }
+        .onboarding-text {
+            color: #54656f;
+            font-size: 16px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .btn-large {
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+        .btn-test {
+            background-color: #00a884;
+            color: white;
+        }
+        .btn-test:hover {
+            background-color: #008f6f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,168,132,0.3);
+        }
+        .btn-skip {
+            background-color: transparent;
+            color: #54656f;
+            border: 1px solid #e9edef;
+        }
+        .btn-skip:hover {
+            background-color: #f0f2f5;
+            color: #111b21;
+        }
+        .icon-large {
+            font-size: 60px;
+            margin-bottom: 20px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">ZAPY ⚡</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="onboarding-container">
+            <span class="icon-large">🚀</span>
+            <h1 class="onboarding-title">Bem-vindo ao ZAPY!</h1>
+            <p class="onboarding-text">
+                Sua conta foi criada com sucesso. Antes de começar a configurar suas campanhas reais, 
+                gostaria de fazer um <strong>Test Drive</strong> para conhecer o sistema?
+            </p>
+
+            <div class="action-buttons">
+                <button onclick="startTestDrive()" class="btn-large btn-test">
+                    Sim, quero testar o sistema
+                </button>
+                <button onclick="skipTest()" class="btn-large btn-skip">
+                    Não, quero entrar na minha conta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function startTestDrive() {
+            // Open demo page in a new tab/window
+            window.open('/demo.html', '_blank');
+            
+            // Optional: Redirect this page to dashboard in background or keep it here
+            // User instruction: "depois do teste ele é orientado a ir na pagina admin de clientes..."
+        }
+
+        function skipTest() {
+            // Redirect to login (which handles role redirection)
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>

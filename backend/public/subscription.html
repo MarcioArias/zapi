@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planos - ZAPY ⚡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .plans-container {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        .plan-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+        }
+        .plan-card.featured {
+            border: 2px solid #00a884;
+        }
+        .featured-badge {
+            background: #00a884;
+            color: white;
+            padding: 5px 30px;
+            position: absolute;
+            top: 20px;
+            right: -30px;
+            transform: rotate(45deg);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .plan-title {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #111b21;
+        }
+        .plan-price {
+            font-size: 36px;
+            font-weight: bold;
+            color: #00a884;
+            margin-bottom: 20px;
+        }
+        .plan-price span {
+            font-size: 16px;
+            color: #54656f;
+            font-weight: normal;
+        }
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+        .plan-features li {
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f2f5;
+            color: #54656f;
+        }
+        .plan-features li:before {
+            content: "✓";
+            color: #00a884;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        .btn-subscribe {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #00a884;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-subscribe:hover {
+            background: #008f6f;
+        }
+        .status-msg {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+<body style="background: #f0f2f5;">
+
+    <header>
+        <div class="container">
+            <div class="logo">ZAPY ⚡</div>
+            <nav>
+                <a href="dashboard.html">Dashboard</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="statusArea" class="status-msg"></div>
+
+        <div class="plans-container" style="display: flex; justify-content: center;">
+            <!-- Single Monthly Plan -->
+            <div class="plan-card featured" style="max-width: 400px; width: 100%;">
+                <div class="featured-badge">OFICIAL</div>
+                <h3 class="plan-title">Plano Mensal</h3>
+                <div class="plan-price">R$ 99,00<span>/mês</span></div>
+                <p style="color: #666; margin-bottom: 20px;">Por usuário</p>
+                <ul class="plan-features">
+                    <li>Instância de WhatsApp Dedicada</li>
+                    <li>Disparos Ilimitados</li>
+                    <li>Simulação de Digitação Humana</li>
+                    <li>Suporte a Arquivos e Mídia</li>
+                    <li>Relatórios de Envio</li>
+                    <li>Suporte Especializado</li>
+                </ul>
+                <button onclick="subscribe('Plano Mensal', 99)" class="btn-subscribe">Assinar Agora</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/notifier-global.js"></script>
+    <script>
+        // Check URL params for status
+        const urlParams = new URLSearchParams(window.location.search);
+        const status = urlParams.get('status');
+        const statusArea = document.getElementById('statusArea');
+
+        if (status === 'failure') {
+            statusArea.style.display = 'block';
+            statusArea.style.background = '#f8d7da';
+            statusArea.style.color = '#721c24';
+            statusArea.textContent = 'Pagamento falhou ou foi cancelado. Tente novamente.';
+        }
+
+        async function subscribe(title, price) {
+            const userStr = localStorage.getItem('zapi_user');
+            const token = localStorage.getItem('zapi_token');
+            
+            if (!userStr || !token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Processando...';
+
+            try {
+                const response = await fetch('/api/payments/checkout', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        title: `Plano ${title} - Zapy`,
+                        price: price
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.init_point) {
+                    window.location.href = data.init_point;
+                } else {
+                    await notifier.error('Erro ao criar pagamento: ' + (data.error || 'Erro desconhecido'));
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+            } catch (error) {
+                console.error(error);
+                await notifier.error('Erro de conexão');
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZAPY Admin - Financeiro</title>
+    <link href="../app/css/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="../js/notifier-global.js"></script>
+</head>
+<body class="bg-slate-50 h-screen flex overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-slate-800 text-white flex flex-col shadow-xl z-20">
+        <div class="p-6 border-b border-slate-700 flex items-center">
+            <span class="text-2xl mr-2">⚡</span>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide">ZAPY</h1>
+                <p class="text-xs text-slate-400 uppercase tracking-wider">Admin</p>
+            </div>
+        </div>
+        
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <a href="index.html" class="flex items-center p-3 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-all">
+                <i class="fas fa-chart-line w-6 text-center mr-3"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="clients.html" class="flex items-center p-3 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-all">
+                <i class="fas fa-users w-6 text-center mr-3"></i>
+                <span>Clientes</span>
+            </a>
+            <a href="financial.html" class="flex items-center p-3 bg-slate-700 text-white rounded-lg shadow-sm font-bold border-l-4 border-emerald-500 transition-all">
+                <i class="fas fa-wallet w-6 text-center mr-3"></i>
+                <span>Financeiro</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-700">
+            <button onclick="logout()" class="w-full flex items-center justify-center p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium">
+                <i class="fas fa-sign-out-alt mr-2"></i> Sair
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200 z-10">
+            <div class="flex items-center justify-between px-8 py-4">
+                <h2 class="text-2xl font-bold text-gray-800">Gestão Financeira</h2>
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors relative">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                    </button>
+                    <div class="flex items-center space-x-3 pl-4 border-l border-gray-200">
+                        <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                            A
+                        </div>
+                        <span class="text-sm font-medium text-gray-700">Admin</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Scrollable Area -->
+        <div class="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-8">
+            <!-- Action Bar -->
+            <div class="flex justify-between items-center mb-8">
+                <div class="relative">
+                    <input type="text" placeholder="Buscar transação..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 w-64 shadow-sm">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+                <button onclick="openAddPaymentModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
+                    <i class="fas fa-plus mr-2"></i>
+                    Novo Pagamento
+                </button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between group hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Receita Total</p>
+                            <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="totalRevenue">R$ 0,00</h3>
+                        </div>
+                        <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                            <i class="fas fa-chart-line text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-sm text-emerald-600">
+                        <i class="fas fa-arrow-up mr-1"></i>
+                        <span>+12.5%</span>
+                        <span class="text-gray-400 ml-1">vs mês anterior</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between group hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Pagamentos Hoje</p>
+                            <h3 class="text-2xl font-bold text-blue-600 mt-1" id="todayRevenue">R$ 0,00</h3>
+                        </div>
+                        <div class="p-2 bg-blue-50 rounded-lg text-blue-600 group-hover:bg-blue-100 transition-colors">
+                            <i class="fas fa-calendar-day text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="far fa-clock mr-1"></i>
+                        <span>Atualizado agora</span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between group hover:shadow-md transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Assinaturas Ativas</p>
+                            <h3 class="text-2xl font-bold text-purple-600 mt-1" id="activeSubscriptions">0</h3>
+                        </div>
+                        <div class="p-2 bg-purple-50 rounded-lg text-purple-600 group-hover:bg-purple-100 transition-colors">
+                            <i class="fas fa-file-invoice-dollar text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-sm text-purple-600">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        <span>Regular</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <h3 class="font-semibold text-gray-800">Histórico de Transações</h3>
+                    <button class="text-sm text-blue-600 hover:text-blue-800 font-medium">Ver Todos</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 text-gray-500 uppercase text-xs font-medium">
+                            <tr>
+                                <th class="p-4">ID</th>
+                                <th class="p-4">Cliente</th>
+                                <th class="p-4">Valor</th>
+                                <th class="p-4">Plano</th>
+                                <th class="p-4">Data</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody" class="divide-y divide-gray-100">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                    <span class="text-sm text-gray-500">Mostrando 10 de 50 resultados</span>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50" disabled>Anterior</button>
+                        <button class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add Payment Modal -->
+    <div id="addPaymentModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 transform transition-all scale-100">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-gray-800">Registrar Pagamento</h3>
+                <button onclick="closeAddPaymentModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <form id="addPaymentForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                    <select id="paymentClient" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border bg-gray-50" required>
+                        <option value="">Selecione um cliente...</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                        <input type="number" step="0.01" id="paymentAmount" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border" placeholder="0,00" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Plano</label>
+                        <select id="paymentPlan" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border" required>
+                            <option value="Basic">Basic</option>
+                            <option value="Pro">Pro</option>
+                            <option value="Enterprise">Enterprise</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select id="paymentStatus" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 border">
+                        <option value="completed">Aprovado</option>
+                        <option value="pending">Pendente</option>
+                        <option value="failed">Falhou</option>
+                    </select>
+                </div>
+
+                <div class="pt-4 flex space-x-3">
+                    <button type="button" onclick="closeAddPaymentModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md">
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Auth Check
+        const user = JSON.parse(localStorage.getItem('zapi_user') || 'null');
+        const token = localStorage.getItem('zapi_token');
+        if (!user || user.role !== 'super_admin' || !token) window.location.href = '../login.html';
+
+        async function logout() {
+            localStorage.removeItem('zapi_user');
+            localStorage.removeItem('zapi_token');
+            window.location.href = '../login.html';
+        }
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        };
+
+        async function loadData() {
+            try {
+                // Load Payments
+                const payRes = await fetch('/api/admin/payments', { headers });
+                const payments = await payRes.json();
+                
+                // Load Clients for Select
+                const cliRes = await fetch('/api/admin/clients', { headers });
+                const clients = await cliRes.json();
+                
+                renderPayments(payments);
+                populateClientSelect(clients);
+                calculateStats(payments);
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('paymentsTableBody').innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Erro ao carregar dados.</td></tr>';
+            }
+        }
+
+        function renderPayments(payments) {
+            const tbody = document.getElementById('paymentsTableBody');
+            tbody.innerHTML = '';
+            
+            if (payments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-gray-400 italic">Nenhum pagamento registrado.</td></tr>';
+                return;
+            }
+
+            payments.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100';
+                
+                const clientName = p.clients ? (p.clients.company_name || p.clients.individual_name || p.clients.email) : 'Desconhecido';
+                const date = new Date(p.due_date).toLocaleDateString('pt-BR');
+                const amount = parseFloat(p.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                
+                let statusClass = '';
+                let statusLabel = '';
+                
+                switch(p.status) {
+                    case 'paid':
+                    case 'completed':
+                        statusClass = 'bg-emerald-100 text-emerald-800';
+                        statusLabel = 'APROVADO';
+                        break;
+                    case 'pending':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusLabel = 'PENDENTE';
+                        break;
+                    default:
+                        statusClass = 'bg-red-100 text-red-800';
+                        statusLabel = 'FALHOU';
+                }
+
+                tr.innerHTML = `
+                    <td class="p-4 text-sm font-medium text-gray-900">#${(p.id || '').toString().substring(0,8)}</td>
+                    <td class="p-4 text-sm text-gray-700 font-medium">${clientName}</td>
+                    <td class="p-4 text-sm text-gray-900 font-bold">${amount}</td>
+                    <td class="p-4 text-sm text-gray-600">${p.payment_method || 'Manual'}</td>
+                    <td class="p-4 text-sm text-gray-600">${date}</td>
+                    <td class="p-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-bold ${statusClass}">
+                            ${statusLabel}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateClientSelect(clients) {
+            const select = document.getElementById('paymentClient');
+            select.innerHTML = '<option value="">Selecione um cliente...</option>';
+            clients.forEach(c => {
+                const name = c.company_name || c.individual_name || c.email;
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+        
+        function calculateStats(payments) {
+            let total = 0;
+            let today = 0;
+            let active = 0; // Just a mock or logic if available
+            
+            // Mock active count for now or derive from payments
+            // In a real app, this should come from clients API with status='active'
+            // For now, let's just count unique clients with paid status
+            const paidClients = new Set();
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            payments.forEach(p => {
+                const val = parseFloat(p.amount);
+                const pDate = new Date(p.created_at || p.due_date).toISOString().split('T')[0];
+
+                if (p.status === 'paid' || p.status === 'completed') {
+                    total += val;
+                    if (pDate === todayStr) {
+                        today += val;
+                    }
+                    if (p.client_id) paidClients.add(p.client_id);
+                }
+            });
+            
+            document.getElementById('totalRevenue').textContent = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('todayRevenue').textContent = today.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            document.getElementById('activeSubscriptions').textContent = paidClients.size;
+        }
+
+        function openAddPaymentModal() {
+            document.getElementById('addPaymentModal').classList.remove('hidden');
+            document.getElementById('addPaymentModal').classList.add('flex');
+        }
+
+        function closeAddPaymentModal() {
+            document.getElementById('addPaymentModal').classList.add('hidden');
+            document.getElementById('addPaymentModal').classList.remove('flex');
+        }
+
+        function logout() {
+            localStorage.removeItem('zapi_user');
+            window.location.href = '../login.html';
+        }
+
+        document.getElementById('addPaymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const payload = {
+                client_id: document.getElementById('paymentClient').value,
+                amount: parseFloat(document.getElementById('paymentAmount').value),
+                // Using current date as due_date for immediate payment
+                due_date: new Date().toISOString(), 
+                status: document.getElementById('paymentStatus').value,
+                description: `Pagamento Manual - Plano ${document.getElementById('paymentPlan').value}`,
+                payment_method: 'Manual'
+            };
+
+            try {
+                const response = await fetch('/api/admin/payments', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    await notifier.success('Pagamento registrado com sucesso!');
+                    closeAddPaymentModal();
+                    loadData();
+                } else {
+                    await notifier.error('Erro ao registrar pagamento');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                await notifier.error('Erro de conexão');
+            }
+        });
+
+        loadData();
+    </script>
+</body>
+</html>

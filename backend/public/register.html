@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - ZAPY ⚡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">ZAPY ⚡</div>
+            <nav>
+                <a href="/">Home</a>
+                <a href="/login.html">Entrar</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="auth-container">
+            <h2>Criar Conta</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="business_type">Tipo de Conta</label>
+                    <select name="business_type" id="business_type" onchange="toggleFields()" autocomplete="off">
+                        <option value="company" selected>Empresa</option>
+                        <option value="individual">Pessoa Física</option>
+                    </select>
+                </div>
+
+                <!-- Container Dinâmico -->
+                <div class="form-group">
+                    <label for="name_field" id="label_name">Razão Social</label>
+                    <input type="text" name="name_field" id="name_field" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="doc_field" id="label_doc">CNPJ</label>
+                    <input type="text" name="doc_field" id="doc_field" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" name="email" id="email" required autocomplete="email">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Telefone (WhatsApp)</label>
+                    <input type="text" name="phone" id="phone" autocomplete="tel" placeholder="(00) 00000-0000">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" name="password" id="password" required autocomplete="new-password">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%">CADASTRAR</button>
+            </form>
+            <div id="message" style="margin-top: 20px; text-align: center; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFields() {
+            const type = document.getElementById('business_type').value;
+            const labelName = document.getElementById('label_name');
+            const labelDoc = document.getElementById('label_doc');
+            const inputName = document.getElementById('name_field');
+            const inputDoc = document.getElementById('doc_field');
+
+            if (type === 'company') {
+                labelName.textContent = 'Razão Social';
+                labelDoc.textContent = 'CNPJ';
+                inputName.placeholder = 'Nome da Empresa';
+                inputDoc.placeholder = '00.000.000/0001-00';
+            } else {
+                labelName.textContent = 'Nome Completo';
+                labelDoc.textContent = 'CPF';
+                inputName.placeholder = 'Seu Nome';
+                inputDoc.placeholder = '000.000.000-00';
+            }
+        }
+
+        // Inicializa o estado correto
+        toggleFields();
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log("🚀 Iniciando envio do formulário...");
+            
+            const formData = new FormData(e.target);
+            const rawData = Object.fromEntries(formData.entries());
+            
+            // Transforma os campos genéricos nos campos esperados pela API
+            const data = {
+                business_type: rawData.business_type,
+                email: rawData.email,
+                phone: rawData.phone,
+                password: rawData.password,
+                account_type: 'active',
+                user_limit: 1
+            };
+
+            if (data.business_type === 'company') {
+                data.company_name = rawData.name_field;
+                data.company_cnpj = rawData.doc_field;
+            } else {
+                data.individual_name = rawData.name_field;
+                data.individual_cpf = rawData.doc_field;
+            }
+
+            console.log("📦 Dados preparados:", data);
+
+            const msgDiv = document.getElementById('message');
+            msgDiv.textContent = 'Processando...';
+            msgDiv.style.color = 'black';
+
+            try {
+                const response = await fetch('/api/clients/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    msgDiv.className = 'message success';
+                    msgDiv.innerHTML = `
+                        <strong>Cadastro realizado com sucesso!</strong><br><br>
+                        Um token de acesso foi enviado para o email cadastrado.<br>
+                        <br>
+                        1. Verifique seu email.<br>
+                        2. Acesse o sistema para definir sua senha.<br><br>
+                        <a href="/login.html" class="btn btn-primary" style="text-decoration:none;">Ir para Login</a>
+                    `;
+                    e.target.reset();
+                } else {
+                    msgDiv.className = 'message error';
+                    msgDiv.textContent = result.error || 'Erro ao cadastrar';
+                }
+            } catch (err) {
+                console.error(err);
+                msgDiv.textContent = 'Erro de conexão: ' + err.message;
+                msgDiv.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primeiro Acesso - ZAPY ⚡</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 80px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">ZAPY ⚡</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="auth-container">
+            <h2 style="text-align: center; margin-bottom: 10px;">Primeiro Acesso</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">Insira seu email e o TOKEN fornecido para definir uma nova senha.</p>
+            
+            <form id="firstAccessForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="emailVisibleInput" name="email" required placeholder="seu@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Token de Acesso</label>
+                    <input type="text" name="token" placeholder="Ex: ABC123" required style="text-transform: uppercase;">
+                </div>
+
+                <div class="form-group">
+                    <label>Nova Senha</label>
+                    <input type="password" name="newPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label>Confirmar Senha</label>
+                    <input type="password" name="confirmPassword" required minlength="6">
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%">DEFINIR SENHA E ENTRAR</button>
+            </form>
+            <div id="message" style="margin-top: 20px; text-align: center;"></div>
+            <div style="margin-top: 15px; text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+                <p style="font-size: 12px; color: #666; margin-bottom: 5px;">Vai usar o WhatsApp neste computador?</p>
+                <a href="/downloads/Zapi_Launcher.zip" download style="font-size: 13px; color: #28a745; text-decoration: none; font-weight: bold;">
+                    ⬇️ Baixar Iniciador Desktop
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/heartbeat.js"></script>
+    <script>
+        // Retrieve email if available (from login redirection)
+        const storedEmail = sessionStorage.getItem('first_access_email');
+        if (storedEmail) {
+            document.getElementById('emailVisibleInput').value = storedEmail;
+        }
+
+        document.getElementById('firstAccessForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+
+            const msgDiv = document.getElementById('message');
+            
+            if (data.newPassword !== data.confirmPassword) {
+                msgDiv.textContent = 'As senhas não coincidem.';
+                msgDiv.style.color = 'red';
+                return;
+            }
+
+            msgDiv.textContent = 'Processando...';
+            msgDiv.style.color = 'black';
+
+            try {
+                const response = await fetch('/api/auth/first-access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: data.email, // Use email from form input
+                        token: data.token.toUpperCase(),
+                        newPassword: data.newPassword
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    msgDiv.textContent = 'Sucesso! Redirecionando para o login...';
+                    msgDiv.style.color = 'green';
+                    
+                    setTimeout(() => {
+                        sessionStorage.removeItem('first_access_email');
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    msgDiv.textContent = result.error || 'Falha na validação';
+                    msgDiv.style.color = 'red';
+                }
+            } catch (err) {
+                msgDiv.textContent = 'Erro de conexão';
+                msgDiv.style.color = 'red';
+            }
+        });
+    </script>
+</body>
+</html>

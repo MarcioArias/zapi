@@ -1,0 +1,53 @@
+GUIA DE INICIALIZAÇÃO RÁPIDA - ZAPI
+===================================
+
+Este documento explica como iniciar o sistema ZAPI no seu computador localmente.
+
+PRÉ-REQUISITOS
+--------------
+Antes de começar, você precisa ter o **Node.js** instalado.
+1. Acesse: https://nodejs.org/
+2. Baixe a versão marcada como "LTS" (Recomendado).
+3. Instale o programa seguindo as instruções padrão (Next, Next, Finish).
+4. Reinicie seu computador se solicitado.
+
+
+COMO INICIAR (WINDOWS)
+----------------------
+1. Certifique-se de que a pasta `backend` está junto com os arquivos de inicialização.
+2. Dê um clique duplo no arquivo `iniciar_zapi.bat`.
+3. Uma janela preta (terminal) se abrirá.
+4. Aguarde o processo de configuração automática.
+5. Quando aparecer a mensagem "O sistema está rodando!", abra seu navegador.
+6. Acesse: http://localhost:3000
+
+IMPORTANTE: Não feche a janela preta enquanto estiver usando o sistema. Se fechar, o site sairá do ar.
+
+
+COMO INICIAR (LINUX / MACOS)
+----------------------------
+1. Abra o terminal na pasta onde estão os arquivos.
+2. Dê permissão de execução ao script (apenas na primeira vez):
+   chmod +x iniciar_zapi.sh
+3. Execute o script:
+   ./iniciar_zapi.sh
+4. Aguarde a configuração e acesse http://localhost:3000 no navegador.
+
+
+PROBLEMAS COMUNS E SOLUÇÕES
+---------------------------
+
+PROBLEMA: A janela abre e fecha rapidamente.
+SOLUÇÃO: Provavelmente o Node.js não está instalado. Instale-o conforme os pré-requisitos.
+
+PROBLEMA: Erro "EADDRINUSE: address already in use".
+SOLUÇÃO: A porta 3000 já está sendo usada por outro programa ou uma instância anterior do ZAPI.
+         Feche outras janelas de terminal/cmd e tente novamente.
+
+PROBLEMA: Erro de permissão (EACCES) ao instalar dependências.
+SOLUÇÃO: No Linux/Mac, tente rodar com `sudo ./iniciar_zapi.sh` se necessário, ou corrija as permissões da pasta.
+         No Windows, tente executar o arquivo .bat como Administrador (clique direito -> Executar como administrador).
+
+SUPORTE
+-------
+Se o problema persistir, entre em contato com o suporte técnico enviando um print da tela de erro.

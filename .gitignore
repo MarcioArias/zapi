@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.DS_Store
+.wwebjs_auth
+.wwebjs_cache
+*.log
+iniciar_zapi.bat
+iniciar_zapi.vbs
+backend/public/downloads/*.zip
+backend/public/downloads/*.bat
+backend/public/downloads/*.vbs

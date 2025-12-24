@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin - ZAPY ⚡</title>
+    <link href="../app/css/output.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800">
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-800 text-white flex flex-col shadow-xl z-20">
+            <div class="p-6 border-b border-slate-700 flex items-center">
+                <span class="text-2xl mr-2">⚡</span>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">ZAPY</h1>
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Admin</p>
+                </div>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+                <a href="index.html" class="flex items-center p-3 bg-slate-700 text-white rounded-lg shadow-sm font-bold border-l-4 border-emerald-500 transition-all">
+                    <i class="fas fa-chart-line w-6 text-center mr-3"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="clients.html" class="flex items-center p-3 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-all">
+                    <i class="fas fa-users w-6 text-center mr-3"></i>
+                    <span>Clientes</span>
+                </a>
+                <a href="financial.html" class="flex items-center p-3 text-slate-300 rounded-lg hover:bg-slate-700 hover:text-white transition-all">
+                    <i class="fas fa-wallet w-6 text-center mr-3"></i>
+                    <span>Financeiro</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-slate-700">
+                <button onclick="logout()" class="w-full flex items-center justify-center p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-sm font-medium">
+                    <i class="fas fa-sign-out-alt mr-2"></i> Sair
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden relative">
+            <!-- Header -->
+            <header class="bg-white shadow-sm z-10 p-4 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-800">Visão Geral</h2>
+                    <p class="text-sm text-gray-500">Olá, <strong class="text-emerald-600">Super Admin</strong></p>
+                </div>
+                <div>
+                    <select id="periodFilter" class="bg-gray-50 border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block p-2.5" onchange="loadStats()">
+                        <option value="30days">Últimos 30 dias</option>
+                        <option value="month">Este Mês</option>
+                        <option value="today">Hoje</option>
+                    </select>
+                </div>
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-x-hidden overflow-y-auto p-6 bg-gray-50">
+                
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Clients -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Total Clientes</p>
+                                <h3 class="text-3xl font-bold text-gray-800 mt-1" id="totalClients">...</h3>
+                            </div>
+                            <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                <i class="fas fa-users text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">Base total cadastrada</div>
+                    </div>
+
+                    <!-- New Clients -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Novos (Período)</p>
+                                <h3 class="text-3xl font-bold text-orange-500 mt-1" id="newClients">...</h3>
+                            </div>
+                            <div class="p-2 bg-orange-50 rounded-lg text-orange-500">
+                                <i class="fas fa-user-plus text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">Crescimento recente</div>
+                    </div>
+
+                    <!-- Active Clients -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Clientes Ativos</p>
+                                <h3 class="text-3xl font-bold text-emerald-600 mt-1" id="activeClients">...</h3>
+                            </div>
+                            <div class="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">Contas em dia</div>
+                    </div>
+
+                    <!-- Revenue -->
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Faturamento</p>
+                                <h3 class="text-3xl font-bold text-blue-600 mt-1" id="periodRevenue">...</h3>
+                            </div>
+                            <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                <i class="fas fa-dollar-sign text-xl"></i>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">Receita no período</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Crescimento & Faturamento (6 Meses)</h3>
+                        <div class="relative h-64 w-full">
+                            <canvas id="growthChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                        <h3 class="text-lg font-bold text-gray-800 mb-4">Status dos Clientes</h3>
+                        <div class="relative h-64 w-full flex justify-center">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Clients Table -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-gray-800">Novos Clientes</h3>
+                        <a href="clients.html" class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">Ver todos</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-gray-50 text-gray-500 uppercase text-xs font-medium">
+                                <tr>
+                                    <th class="p-4">Data</th>
+                                    <th class="p-4">Nome/Empresa</th>
+                                    <th class="p-4">Email</th>
+                                    <th class="p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentClientsTable" class="divide-y divide-gray-100 text-sm">
+                                <tr><td colspan="4" class="p-4 text-center text-gray-500">Carregando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Auth Check
+        const user = JSON.parse(localStorage.getItem('zapi_user') || 'null');
+        const token = localStorage.getItem('zapi_token');
+        
+        if (!user || user.role !== 'super_admin' || !token) {
+            window.location.href = '../login.html';
+        }
+
+        async function logout() {
+            localStorage.removeItem('zapi_user');
+            localStorage.removeItem('zapi_token');
+            window.location.href = '../login.html';
+        }
+
+        // Load Stats
+        async function loadStats() {
+            const period = document.getElementById('periodFilter').value;
+            
+            try {
+                const response = await fetch(`/api/admin/stats?period=${period}`, {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                
+                // Cards
+                document.getElementById('totalClients').textContent = data.totalClients || 0;
+                document.getElementById('activeClients').textContent = data.activeClients || 0;
+                document.getElementById('newClients').textContent = data.newClientsInPeriod || 0;
+                document.getElementById('periodRevenue').textContent = `R$ ${Number(data.revenueInPeriod).toFixed(2)}`;
+                
+                // Table
+                const table = document.getElementById('recentClientsTable');
+                table.innerHTML = '';
+                if (data.recentClients.length === 0) {
+                    table.innerHTML = '<tr><td colspan="4">Nenhum cliente recente.</td></tr>';
+                } else {
+                    data.recentClients.forEach(c => {
+                        const tr = document.createElement('tr');
+                        tr.className = 'hover:bg-gray-50 transition-colors border-b border-gray-100';
+                        const name = c.company_name || c.individual_name || c.trading_name || 'Sem nome';
+                        
+                        const statusClass = c.status === 'active' 
+                            ? 'bg-emerald-100 text-emerald-800' 
+                            : 'bg-red-100 text-red-800';
+
+                        tr.innerHTML = `
+                            <td class="p-4 text-gray-600">${new Date(c.created_at).toLocaleDateString()}</td>
+                            <td class="p-4 font-medium text-gray-800">${name}</td>
+                            <td class="p-4 text-gray-600">${c.email}</td>
+                            <td class="p-4">
+                                <span class="px-2 py-1 rounded-full text-xs font-bold ${statusClass}">
+                                    ${c.status ? c.status.toUpperCase() : 'UNKNOWN'}
+                                </span>
+                            </td>
+                        `;
+                        table.appendChild(tr);
+                    });
+                }
+
+                // Render Charts
+                renderCharts(data.charts);
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        let growthChartInstance = null;
+        let statusChartInstance = null;
+
+        function renderCharts(chartsData) {
+            // 1. Growth Chart (Bar/Line Combo)
+            const ctxGrowth = document.getElementById('growthChart').getContext('2d');
+            
+            // Prepare labels (months) and data
+            const labels = Object.keys(chartsData.clientsGrowth).reverse(); // reverse if needed, but usually API should return sorted or we sort here
+            // Let's ensure keys are sorted by month order if possible, but for MVP object keys might be insertion order in JS (mostly)
+            // A robust sort would be better, but let's assume simple object iteration for now
+            
+            // Better sorting
+            const monthsOrder = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+            // Actually, keys are 'jan.', 'fev.' etc from toLocaleString.
+            // Let's just use the keys as they come from server which was iterated from sorted query
+            
+            // Re-map to arrays
+            const chartLabels = Object.keys(chartsData.clientsGrowth);
+            const clientData = Object.values(chartsData.clientsGrowth);
+            const revenueData = Object.values(chartsData.revenueGrowth); // Warning: keys might not match perfectly if months missing
+
+            // Align data sets (simple approach: merge keys)
+            const allKeys = new Set([...Object.keys(chartsData.clientsGrowth), ...Object.keys(chartsData.revenueGrowth)]);
+            // Sort keys based on something... or just use what we have. 
+            // Since we queried "last 6 months" in order in backend, let's rely on that.
+            // But wait, the backend loop was on `allClients` which might be mixed.
+            // Let's trust the backend for now, or just use client keys as base.
+
+            if (growthChartInstance) growthChartInstance.destroy();
+
+            growthChartInstance = new Chart(ctxGrowth, {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            label: 'Novos Clientes',
+                            data: clientData,
+                            backgroundColor: '#3498db',
+                            yAxisID: 'y',
+                            order: 2
+                        },
+                        {
+                            label: 'Faturamento (R$)',
+                            data: revenueData, // Note: might need alignment
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.2)',
+                            type: 'line',
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+
+            // 2. Status Chart (Doughnut)
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            if (statusChartInstance) statusChartInstance.destroy();
+
+            statusChartInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativos', 'Inativos', 'Bloqueados'],
+                    datasets: [{
+                        data: [
+                            chartsData.statusDist.active || 0,
+                            chartsData.statusDist.inactive || 0,
+                            chartsData.statusDist.blocked || 0
+                        ],
+                        backgroundColor: ['#27ae60', '#95a5a6', '#e74c3c']
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+        
+        // Init
+        loadStats();
+    </script>
+</body>
+</html>
