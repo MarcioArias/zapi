@@ -46,13 +46,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// SSL Certificate Configuration
-const privateKey = fs.readFileSync(path.join(__dirname, '../certs/server.key'), 'utf8');
-const certificate = fs.readFileSync(path.join(__dirname, '../certs/server.cert'), 'utf8');
-const credentials = { key: privateKey, cert: certificate };
-
-const httpsServer = https.createServer(credentials, app);
-
 const APP_MODE = process.env.APP_MODE || 'desktop';
 
 // Heartbeat / Auto-shutdown logic for Desktop Mode
@@ -81,13 +74,37 @@ if (APP_MODE === 'desktop') {
   }, STARTUP_GRACE_PERIOD);
 }
 
-httpsServer.listen(port, () => {
-  logger.info(`Secure Server (HTTPS) running on port ${port} [MODE: ${APP_MODE.toUpperCase()}]`);
-  
-  // Only start WhatsApp engine if in DESKTOP mode
+// Start Server Logic (HTTP vs HTTPS)
+const startServer = () => {
+  const onListen = () => {
+    logger.info(`Server running on port ${port} [MODE: ${APP_MODE.toUpperCase()}]`);
+    
+    // Only start WhatsApp engine if in DESKTOP mode
+    if (APP_MODE === 'desktop') {
+      whatsappService.restoreSessions();
+    } else {
+      logger.info('☁️ Cloud Mode: WhatsApp Engine disabled (Management Only)');
+    }
+  };
+
   if (APP_MODE === 'desktop') {
-    whatsappService.restoreSessions();
+    // Desktop Mode uses local HTTPS certificates
+    try {
+      const privateKey = fs.readFileSync(path.join(__dirname, '../certs/server.key'), 'utf8');
+      const certificate = fs.readFileSync(path.join(__dirname, '../certs/server.cert'), 'utf8');
+      const credentials = { key: privateKey, cert: certificate };
+      
+      https.createServer(credentials, app).listen(port, onListen);
+      logger.info('🔒 Starting in HTTPS mode (Desktop)');
+    } catch (e) {
+      logger.error('Failed to load SSL certs, falling back to HTTP:', e);
+      app.listen(port, onListen);
+    }
   } else {
-    logger.info('☁️ Cloud Mode: WhatsApp Engine disabled (Management Only)');
+    // Cloud Mode uses standard HTTP (SSL handled by proxy/Render)
+    app.listen(port, onListen);
+    logger.info('☁️ Starting in HTTP mode (Cloud/Proxy)');
   }
-});
+};
+
+startServer();
