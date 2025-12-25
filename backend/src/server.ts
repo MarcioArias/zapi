@@ -42,6 +42,10 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'Zapi Backend is running' });
 });
 
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
